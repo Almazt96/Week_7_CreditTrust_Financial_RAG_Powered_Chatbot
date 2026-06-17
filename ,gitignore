@@ -1,0 +1,29 @@
+# Prevents committing datasets and local indexes
+data/raw/
+data/processed/
+# models/
+.pytest_cache/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.vscode/
+# Ignore vector databases and large data folders
+data/
+chromadb/
+storage/
+*.bin
+*.pkl
+
+# Evaluation/Data inputs
+data/
+*.pdf
+*.jsonl
+
+# Vector Database storage
+chromadb/
+faiss_index/
+.chroma/
+
+# Python virtual environment
+.venv/
+venv/
