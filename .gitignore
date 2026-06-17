@@ -1,0 +1,45 @@
+# Prevents committing datasets and local indexes
+data/raw/
+data/processed/
+.pytest_cache/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.vscode/
+# Ignore vector databases and large data folders
+data/
+chromadb/
+storage/
+*.bin
+*.pkl
+*.png
+
+# Ignore data and models
+*.csv
+*.parquet
+models/
+venv/
+.venv/
+
+# Evaluation/Data inputs
+*.pdf
+*.jsonl
+
+# Vector Database storage
+faiss_index/
+.chroma/
+
+# Block the exact file extensions anywhere in the project
+*.zip
+
+# Virtual environments
+env/
+
+# Data and Vector DBs
+*.json
+chroma/
+faiss/
+.chromadb/
+
+# Python cache & local models
+*.gguf
