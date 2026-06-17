@@ -27,3 +27,11 @@ faiss_index/
 # Python virtual environment
 .venv/
 venv/
+
+# Block the exact file extensions anywhere in the project
+*.zip
+*.parquet
+
+# Block the entire data directory structure
+data/
+data/raw/
