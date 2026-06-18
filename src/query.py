@@ -1,8 +1,16 @@
 import os
 import chromadb
 from sentence_transformers import SentenceTransformer
+import ssl
 
-def initialize_rag_system(db_path="./local_cfpb_chroma", collection_name="langchain"):
+# Disable SSL verification for Python's standard library
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Disable SSL verification for huggingface_hub / urllib3 / requests
+os.environ["CURL_CA_BUNDLE"] = ""
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
+def initialize_rag_system(db_path="./local_cfpb_chroma", collection_name="cfpb_complaints_idx"):
     """Initializes the vector store and embedding model."""
     if not os.path.exists(db_path):
         print(f"[ERROR] Vector store not found at {db_path}. Please run indexer.py first!")
@@ -10,8 +18,7 @@ def initialize_rag_system(db_path="./local_cfpb_chroma", collection_name="langch
 
     print("--- Initializing Chatbot System ---")
     print("Loading embedding model (matching indexer)...")
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
+    embedding_model = SentenceTransformer("./local_model")
     print(f"Connecting to ChromaDB at: '{db_path}'...")
     chroma_client = chromadb.PersistentClient(path=db_path)
     
@@ -60,7 +67,7 @@ def main():
     # If your indexer named your collection something else, change it here
     collection, embedding_model = initialize_rag_system(
         db_path="./local_cfpb_chroma", 
-        collection_name="langchain" 
+        collection_name="cfpb_complaints_idx" 
     )
 
     if not collection or not embedding_model:
