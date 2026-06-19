@@ -14,8 +14,6 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 import requests  # Used for communicating with a local LLM server like Ollama
 import ssl
-
-import os
 import warnings
 
 # 1. Force lower-level urllib, requests, and httpx to completely ignore SSL certificates
@@ -54,8 +52,6 @@ print("[SYSTEM] Network certificate checks successfully suppressed.")
 # =====================================================================
 import chromadb
 from sentence_transformers import SentenceTransformer
-# ... rest of your script
-
 
 # 1. Disable SSL verification globally for standard python libraries
 try:
@@ -71,7 +67,7 @@ os.environ["CURL_CA_BUNDLE"] = ""
 os.environ["REQUESTS_CA_BUNDLE"] = ""
 
 class CrediTrustRAG:
-    def __init__(self, db_path="./production_chroma", collection_name="langchain"):
+    def __init__(self, db_path="./production_chroma", collection_name="cfpb_complaints_idx"):
         """Initializes connection to the 1.37M chunk production database."""
         print("Loading Embedding Model (all-MiniLM-L6-v2)...")
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -82,7 +78,7 @@ class CrediTrustRAG:
         
         # Ollama endpoint configuration (Default local setup running Llama 3 or Mistral)
         self.llm_url = "http://localhost:11434/api/generate"
-        self.llm_model = "llama3" # Replace with 'mistral' or your chosen local model
+        self.llm_model = "mistral" # Replace with 'mistral' or your chosen local model
 
     def retrieve_context(self, query_text, k=5):
         """Retriever Module: Embeds query and fetches top k=5 matching chunks."""
@@ -185,3 +181,19 @@ if __name__ == "__main__":
     test_query = "What specific issues are consumers facing with international wire transfers?"
     ans, ctx = rag_system.query(test_query)
     print(f"\nAnswer:\n{ans}")
+
+""" Task 4: Creating an Interactive Chat Interface
+To empower non-technical support, compliance, and product managers, you will encapsulate your 
+backend RAG pipeline into an interactive web UI.
+Step-by-Step Implementation Protocol:
+•	UI Framework Selection: Build the application interface in `app.py` utilizing Streamlit or 
+Gradio. Streamlit is highly recommended for multi-column analytic dashboard layouts,
+while Gradio fits perfectly into conversational interfaces.
+•	Conversational & Input Components: Provide a clean, full-width text input box or a dedicated 
+chat interface (`st.chat_input` or `gr.ChatInterface`). Implement a responsive submit button and 
+a separate 'Clear Conversation' option to flush system state memory.
+•	Source & Evidence Display: Crucial for enterprise trust! Design an expanding or dedicated 
+secondary metadata container below or beside the AI answer. Loop over the retrieved source chunks, displaying the raw text narrative snippet, the actual `complaint_id`, and its corresponding sub-issue category.
+•	Response Streaming (Recommended): Configure token-by-token generation streaming using g
+enerator loops. This provides visual feedback and eliminates latency frustration for business stakeholders.
+ """
