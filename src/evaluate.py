@@ -4,7 +4,13 @@ highly precise analytical questions, prints out the context versus the answer, a
 structured interface for you to apply the 1–5 quality rubric. """
 
 import pandas as pd
-from rag_core import CrediTrustRAG
+import sys
+import os
+
+# Adds the current file's directory to the python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from rag_pipeline import CrediTrustRAG
 
 def run_evaluation_suite():
     # Initialize the RAG system

@@ -10,7 +10,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 os.environ["CURL_CA_BUNDLE"] = ""
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
-def initialize_rag_system(db_path="./local_cfpb_chroma", collection_name="cfpb_complaints_idx"):
+def initialize_rag_system(db_path="./production_chroma", collection_name="cfpb_complaints_idx"):
     """Initializes the vector store and embedding model."""
     if not os.path.exists(db_path):
         print(f"[ERROR] Vector store not found at {db_path}. Please run indexer.py first!")
@@ -66,7 +66,7 @@ def query_chatbot(query_text, collection, embedding_model, n_results=3):
 def main():
     # If your indexer named your collection something else, change it here
     collection, embedding_model = initialize_rag_system(
-        db_path="./local_cfpb_chroma", 
+        db_path="./production_chroma", 
         collection_name="cfpb_complaints_idx" 
     )
 
