@@ -176,7 +176,7 @@ def generate_answer(self, query_text, context_chunks):
 # Verification block to test a single query
 if __name__ == "__main__":
     # Update paths to your 1.37M chunk DB path if different
-    rag_system = CrediTrustRAG(db_path="./production_chroma") 
+    rag_system = CrediTrustRAG(db_path="./production_chroma", collection_name="cfpb_complaints_idx") 
     
     test_query = "What specific issues are consumers facing with international wire transfers?"
     ans, ctx = rag_system.query(test_query)
