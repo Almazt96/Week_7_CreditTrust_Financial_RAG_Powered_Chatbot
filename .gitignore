@@ -43,3 +43,7 @@ faiss/
 
 # Python cache & local models
 *.gguf
+
+# Ignore local vector database SQLite files
+vector_store/
+*.sqlite3
