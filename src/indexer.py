@@ -1,9 +1,7 @@
-# Chunking &amp; embedding scripts
-"""
+"""Task_2: # Chunking & embedding scripts
 Core indexing and vector database ingestion pipeline component.
 Handles document splitting, text chunk embedding transformations, and local storage persistence.
 """
-
 import logging
 from typing import List, Dict, Any, Optional
 from langchain_text_splitters import RecursiveCharacterTextSplitter
