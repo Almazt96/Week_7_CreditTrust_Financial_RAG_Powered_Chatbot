@@ -1,71 +1,50 @@
 # Task_3:
+# The data pipeline execution chain flows smoothly: preprocessing.py --> indexer.py 
+# --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
 import os
-import ssl
-import warnings
-import functools
+import sys
+import logging
+from typing import Tuple, List
 
-# 1. Force network and Hugging Face tools to bypass local proxy issues
-os.environ["CURL_CA_BUNDLE"] = ""
-os.environ["REQUESTS_CA_BUNDLE"] = ""
-os.environ["HTTPX_VERIFY"] = "False"
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# 2. Global runtime SSL monkeypatch
-try:
-    ssl._create_default_https_context = ssl._create_unverified_context
-except AttributeError:
-    pass
-
-# 3. Patch third-party requests library globally
-try:
-    import requests
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-    requests.adapters.HTTPAdapter.send = functools.partialmethod(requests.adapters.HTTPAdapter.send, verify=False)
-    requests.Session.request = functools.partialmethod(requests.Session.request, verify=False)
-except ImportError:
-    pass
-
-warnings.filterwarnings("ignore", category=UserWarning)
-print("[SYSTEM] Network certificate checks successfully suppressed.")
-
-# =====================================================================
-# SYSTEM IMPORTS
-# =====================================================================
-import chromadb
-from sentence_transformers import SentenceTransformer
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
 from huggingface_hub import InferenceClient
+from src.config import VECTOR_STORE_DIR, EMBEDDING_MODEL_NAME, COLLECTION_NAME
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Suppress network warnings cleanly
+os.environ["CURL_CA_BUNDLE"] = ""
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
 class CrediTrustRAG:
-    def __init__(self, db_path="./production_chroma", collection_name="cfpb_complaints_idx"):
-        """Initializes connection to the production database."""
-        print("Loading Embedding Model (all-MiniLM-L6-v2)...")
-        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-        
-        print(f"Connecting to production vector store at {db_path}...")
-        self.chroma_client = chromadb.PersistentClient(path=db_path)
-        self.collection = self.chroma_client.get_or_create_collection(name=collection_name)
-        
-        # Hugging Face Inference configuration
-        self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
+    def __init__(self):
+        """Initializes connection to the generated vector database infrastructure."""
+        try:
+            self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+            self.vector_db = Chroma(
+                persist_directory=str(VECTOR_STORE_DIR),
+                embedding_function=self.embeddings,
+                collection_name=COLLECTION_NAME
+            )
+            self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
+            logger.info(f"RAG Engine successfully bound to collection: {COLLECTION_NAME}")
+        except Exception as e:
+            logger.error(f"Failed initialization of RAG pipeline components: {e}")
+            raise
 
-    def retrieve_context(self, query_text, k=5):
-        """Retriever Module: Embeds query and fetches top k matching chunks."""
-        query_embedding = self.embedding_model.encode(query_text).tolist()
+    def query(self, query_text: str, k: int = 4) -> Tuple[str, List[str]]:
+        """Executes full similarity retrieval and returns LLM summary text."""
+        # Retrieve context matching index structure
+        docs = self.vector_db.similarity_search(query_text, k=k)
+        context_chunks = [doc.page_content for doc in docs]
         
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=k
-        )
-        
-        if not results or not results.get('documents') or len(results['documents'][0]) == 0:
-            return []
-        
-        return results['documents'][0]
+        if not context_chunks:
+            return "I do not have enough information.", []
 
-    def generate_answer(self, query_text, context_chunks):
-        """Generator Module: Uses Hugging Face serverless inference to generate response."""
         context_str = "\n\n--- Context Chunk ---\n".join(context_chunks)
         
         system_prompt = (
@@ -84,35 +63,10 @@ class CrediTrustRAG:
             client = InferenceClient(self.hf_model)
             response = client.text_generation(
                 prompt=f"<s>[SYSTEM] {system_prompt} [/SYSTEM] [USER] {user_prompt} [/USER]",
-                max_new_tokens=500,
+                max_new_tokens=400,
                 temperature=0.1
             )
-            return response
+            return response.strip(), context_chunks
         except Exception as e:
-            return f"[ERROR] Hugging Face Inference failed: {str(e)}"
-        
-    def query(self, query_text):
-        """Orchestrates the entire RAG pipeline."""
-        context = self.retrieve_context(query_text, k=5)
-        if not context:
-            return "I do not have enough information.", []
-        
-        answer = self.generate_answer(query_text, context)
-        return answer, context
-
-
-# =====================================================================
-# VERIFICATION EXECUTION BLOCK
-# =====================================================================
-if __name__ == "__main__":
-    rag_system = CrediTrustRAG(db_path="./production_chroma", collection_name="cfpb_complaints_idx") 
-    
-    test_query = "What specific issues are consumers facing with international wire transfers?"
-    
-    # Corrected method execution call
-    ans, ctx = rag_system.query(test_query)
-    
-    print(f"\nAnswer:\n{ans}")
-    print("\nRetrieved Context Chunks:")
-    for i, chunk in enumerate(ctx):
-        print(f"--- Chunk {i+1} ---\n{chunk}\n")
+            logger.error(f"Hugging Face Hub inference execution exception: {e}")
+            return f"[ERROR] Generation failed: {str(e)}", context_chunks
