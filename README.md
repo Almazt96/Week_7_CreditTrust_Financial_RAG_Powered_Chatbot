@@ -1,7 +1,8 @@
 # Week_7_CreditTrust_Financial_RAG_Powered_Chatbot
 
 Current Codebase Architecture & Git Compliance
-To ensure industrial tracking across the 10 Academy cohorts, the repository structure complies exactly with standard continuous integration conventions. The prototype tasks have been successfully isolated into separate modular scripts:
+To ensure industrial tracking across the 10 Academy cohorts, the repository structure complies exactly with standard 
+continuous integration conventions. The prototype tasks have been successfully isolated into separate modular scripts:
 rag-complaint-chatbot/
 ├── .vscode/
 │   └── settings.json
@@ -43,8 +44,8 @@ a separate 'Clear Conversation' option to flush system state memory.
 •	Source & Evidence Display: Crucial for enterprise trust! Design an expanding or dedicated 
 secondary metadata container below or beside the AI answer. Loop over the retrieved source 
 chunks, displaying the raw text narrative snippet, the actual `complaint_id`, and its corresponding sub-issue category.
-•	Response Streaming (Recommended): Configure token-by-token generation streaming using g
-enerator loops. This provides visual feedback and eliminates latency frustration for business stakeholders.
+•	Response Streaming (Recommended): Configure token-by-token generation streaming using 
+generator loops. This provides visual feedback and eliminates latency frustration for business stakeholders.
  """
 """ Key Highlights of This Code:
 Response Streaming: Utilizing st.write_stream() alongside a python generator loop 
