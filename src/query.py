@@ -1,4 +1,4 @@
-Task_2: # RAG query Streamlined Interactive Interface
+# Task_2: # RAG query Streamlined Interactive Interface
 import os
 import sys
 
