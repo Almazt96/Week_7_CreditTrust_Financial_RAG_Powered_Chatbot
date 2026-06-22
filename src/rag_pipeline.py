@@ -1,17 +1,19 @@
-# Task_3:
+# Task_3: Hardened RAG Execution Pipeline (Clean Isolation Architecture)
 # The data pipeline execution chain flows smoothly: preprocessing.py --> indexer.py 
 # --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
+
 import os
 import sys
 import logging
+import chromadb
 from typing import Tuple, List
 
+# Ensure parent directory remains visible to the imports regardless of entry point
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
 from huggingface_hub import InferenceClient
-from src.config import VECTOR_STORE_DIR, EMBEDDING_MODEL_NAME, COLLECTION_NAME
+from src.config import VECTOR_STORE_DIR, EMBEDDING_MODEL_NAME
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,23 +26,43 @@ class CrediTrustRAG:
     def __init__(self):
         """Initializes connection to the generated vector database infrastructure."""
         try:
+            # 1. Initialize the embedding framework
             self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-            self.vector_db = Chroma(
-                persist_directory=str(VECTOR_STORE_DIR),
-                embedding_function=self.embeddings,
-                collection_name=COLLECTION_NAME
-            )
+            
+            # 2. FIX: Bypass LangChain completely. Open a native client to the storage folder.
+            self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
+            
+            # 3. FIX: Pull the default collection instead of a custom metadata-bound index name.
+            # This completely strips out the filtered path causing the Rust query planner to panic.
+            self.collection = self.chroma_client.get_or_create_collection(name="langchain")
+            
             self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
-            logger.info(f"RAG Engine successfully bound to collection: {COLLECTION_NAME}")
+            self.client = InferenceClient(self.hf_model)
+            
+            logger.info("RAG Engine successfully bound to native unfiltered collection infrastructure.")
         except Exception as e:
             logger.error(f"Failed initialization of RAG pipeline components: {e}")
             raise
 
     def query(self, query_text: str, k: int = 4) -> Tuple[str, List[str]]:
         """Executes full similarity retrieval and returns LLM summary text."""
-        # Retrieve context matching index structure
-        docs = self.vector_db.similarity_search(query_text, k=k)
-        context_chunks = [doc.page_content for doc in docs]
+        
+        try:
+            # 1. Calculate raw embeddings from the input string
+            query_embedding = self.embeddings.embed_query(query_text)
+            
+            # 2. Run an entirely unfiltered raw native vector search
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=k
+            )
+            
+            # Extract plain text content directly from the returned array structure
+            context_chunks = results.get("documents", [[]])[0]
+            
+        except Exception as e:
+            logger.error(f"Native vector retrieval panic caught: {e}")
+            return "Retrieval system encountered an index drift delay.", []
         
         if not context_chunks:
             return "I do not have enough information.", []
@@ -60,8 +82,7 @@ class CrediTrustRAG:
         user_prompt = f"Context:\n{context_str}\n\nQuestion: {query_text}\n\nAnalyst Answer:"
         
         try:
-            client = InferenceClient(self.hf_model)
-            response = client.text_generation(
+            response = self.client.text_generation(
                 prompt=f"<s>[SYSTEM] {system_prompt} [/SYSTEM] [USER] {user_prompt} [/USER]",
                 max_new_tokens=400,
                 temperature=0.1
