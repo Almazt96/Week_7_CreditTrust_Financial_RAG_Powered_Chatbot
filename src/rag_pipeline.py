@@ -1,7 +1,6 @@
 # Task_3: Hardened RAG Execution Pipeline (Clean Isolation Architecture)
-# The data pipeline execution chain flows smoothly: preprocessing.py --> indexer.py 
-# --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
-
+# The data pipeline execution chain flows smoothly: preprocessing.py --> 
+# indexer.py --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
 # Task_3: Fully Synchronized Hardened RAG Execution Pipeline
 import os
 import sys
@@ -99,6 +98,8 @@ class CrediTrustRAG:
         # Bind the text chunks together for prompt context
         context_str = "\n\n--- Context Chunk ---\n".join([str(chunk) for chunk in context_chunks])
         
+# ... (Keep everything above this point in your query method exactly the same) ...
+
         system_prompt = (
             "You are a CrediTrust Financial Analyst. Your job is to analyze consumer financial complaints.\n"
             "CRITICAL INSTRUCTIONS:\n"
@@ -112,12 +113,18 @@ class CrediTrustRAG:
         user_prompt = f"Context:\n{context_str}\n\nQuestion: {query_text}\n\nAnalyst Answer:"
         
         try:
-            response = self.client.text_generation(
-                prompt=f"<s>[SYSTEM] {system_prompt} [/SYSTEM] [USER] {user_prompt} [/USER]",
-                max_new_tokens=400,
+            # FIXED: Using chat_completion satisfies the conversational task requirement
+            response = self.client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=400,
                 temperature=0.1
             )
-            return response.strip(), context_chunks
+            # Extract text from the chat completion response object safely
+            return response.choices[0].message.content.strip(), context_chunks
+            
         except Exception as e:
             logger.error(f"Hugging Face Hub inference execution exception: {e}")
             return f"[ERROR] Generation failed: {str(e)}", context_chunks
