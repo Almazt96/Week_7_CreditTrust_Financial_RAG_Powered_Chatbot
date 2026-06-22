@@ -1,7 +1,8 @@
 # Week_7_CreditTrust_Financial_RAG_Powered_Chatbot
 
 Current Codebase Architecture & Git Compliance
-To ensure industrial tracking across the 10 Academy cohorts, the repository structure complies exactly with standard continuous integration conventions. The prototype tasks have been successfully isolated into separate modular scripts:
+To ensure industrial tracking across the 10 Academy cohorts, the repository structure complies exactly with standard 
+continuous integration conventions. The prototype tasks have been successfully isolated into separate modular scripts:
 rag-complaint-chatbot/
 ├── .vscode/
 │   └── settings.json
