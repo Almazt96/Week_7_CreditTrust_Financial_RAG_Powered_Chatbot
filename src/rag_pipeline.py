@@ -1,18 +1,21 @@
-# Task_3: Hardened RAG Execution Pipeline (Clean Isolation Architecture)
-# The data pipeline execution chain flows smoothly: preprocessing.py --> 
-# indexer.py --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
+# Task_3: Hardened RAG Execution Pipeline (Clean Isolation 
+# Architecture). The data pipeline execution chain flows 
+# smoothly:
+# preprocessing.py --> indexer.py --> evaluate.py or query.py. 
+# Everything is tied together seamlessly under src/config.py
 # Task_3: Fully Synchronized Hardened RAG Execution Pipeline
 import os
 import sys
 import logging
 import chromadb
 from typing import Tuple, List
+from openai import OpenAI
 
-# Ensure parent directory remains visible to the imports regardless of entry point
+# Ensure parent directory remains visible to the imports 
+# regardless of entry point
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from huggingface_hub import InferenceClient
 from src.config import VECTOR_STORE_DIR, EMBEDDING_MODEL_NAME
 
 logging.basicConfig(level=logging.INFO)
@@ -51,10 +54,10 @@ class CrediTrustRAG:
             
             self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
             
-            # Authenticated Inference Client binding your environment token
-            self.client = InferenceClient(
-                model=self.hf_model,
-                token=os.environ.get("HF_TOKEN")
+            # FIXED: Kept ONLY the OpenAI client configured for your Novita token endpoint
+            self.client = OpenAI(
+                base_url="https://api.novita.ai/v3/openai",
+                api_key=os.environ.get("HF_TOKEN") # Pulls your key dynamically
             )
             
             logger.info(f"RAG Engine successfully synchronized to active collection target: {chosen_collection}")
@@ -75,7 +78,7 @@ class CrediTrustRAG:
             )
             
             # Extract plain text content directly from the returned array structure
-            documents_list = Antiquated_docs = results.get("documents", [])
+            documents_list = results.get("documents", [])
             context_chunks = documents_list[0] if documents_list else []
                 
         except Exception as e:
@@ -98,8 +101,6 @@ class CrediTrustRAG:
         # Bind the text chunks together for prompt context
         context_str = "\n\n--- Context Chunk ---\n".join([str(chunk) for chunk in context_chunks])
         
-# ... (Keep everything above this point in your query method exactly the same) ...
-
         system_prompt = (
             "You are a CrediTrust Financial Analyst. Your job is to analyze consumer financial complaints.\n"
             "CRITICAL INSTRUCTIONS:\n"
@@ -113,8 +114,9 @@ class CrediTrustRAG:
         user_prompt = f"Context:\n{context_str}\n\nQuestion: {query_text}\n\nAnalyst Answer:"
         
         try:
-            # FIXED: Using chat_completion satisfies the conversational task requirement
-            response = self.client.chat_completion(
+            # Novita natively accepts standard chat completion format perfectly now
+            response = self.client.chat.completions.create(
+                model=self.hf_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -122,9 +124,8 @@ class CrediTrustRAG:
                 max_tokens=400,
                 temperature=0.1
             )
-            # Extract text from the chat completion response object safely
             return response.choices[0].message.content.strip(), context_chunks
             
         except Exception as e:
-            logger.error(f"Hugging Face Hub inference execution exception: {e}")
+            logger.error(f"Novita inference execution exception: {e}")
             return f"[ERROR] Generation failed: {str(e)}", context_chunks
