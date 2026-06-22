@@ -17,22 +17,14 @@ st.title("💬 CrediTrust RAG Support Interface")
 st.caption("Empowering compliance, support, and product management teams with verified insight lineages.")
 
 # # --- 2. INITIALIZE PRODUCTION RAG BACKEND ---
-# @st.cache_resource
-# def get_rag_system():
-#     # Points directly to your Week-7 indexed Vector database
-#     return CrediTrustRAG(db_path="./production_chroma", collection_name="cfpb_complaints_idx")
-
-# try:
-#     rag_system = get_rag_system()
-# except Exception as e:
-#     st.error(f"Failed to connect to the vector database: {str(e)}")
-#     st.stop()
-# --- 2. INITIALIZE PRODUCTION RAG BACKEND ---
 @st.cache_resource
 def get_rag_system():
     # Since your class has no arguments in __init__, call it empty.
     # It handles paths internally inside src/rag_pipeline.py!
     return CrediTrustRAG()
+
+# ADD THIS LINE TO ACTUALLY INITIALIZE THE VARIABLE:
+rag_system = get_rag_system()
 
 # --- 3. SESSION STATE INITIALIZATION ---
 if "messages" not in st.session_state:
