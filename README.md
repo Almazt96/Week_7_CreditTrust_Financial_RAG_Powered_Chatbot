@@ -27,15 +27,3 @@ rag-complaint-chatbot/
 ├── requirements.txt            # Python production dependencies
 ├── README.md                   # Repository documentation and startup commands
 └── .gitignore                  # Prevents committing datasets and local indexes
-
-""" Key Highlights of This Code:
-Response Streaming: Utilizing st.write_stream() alongside a python generator loop 
-guarantees that stakeholders see tokens outputting live, mitigating perceived latency.
-
-State Management: st.session_state.messages preserves the historical conversation 
-context so it behaves like a true conversational application. The "Clear Conversation" 
-button resets this state cleanly.
-
-Auditability & Trust: Sources are organized into a strict hierarchy leveraging columns 
-for metadata layout (complaint_id, sub_issue) and a styled st.info block for raw snippet 
-readability. """
