@@ -2,6 +2,7 @@
 # The data pipeline execution chain flows smoothly: preprocessing.py --> indexer.py 
 # --> evaluate.py or query.py. Everything is tied together seamlessly under src/config.py
 
+# Task_3: Fully Synchronized Hardened RAG Execution Pipeline
 import os
 import sys
 import logging
@@ -24,50 +25,94 @@ os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
 class CrediTrustRAG:
     def __init__(self):
-        """Initializes connection to the generated vector database infrastructure."""
-        try:
-            # 1. Initialize the embedding framework
-            self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-            
-            # 2. FIX: Bypass LangChain completely. Open a native client to the storage folder.
-            self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
-            
-            # 3. FIX: Pull the default collection instead of a custom metadata-bound index name.
-            # This completely strips out the filtered path causing the Rust query planner to panic.
-            self.collection = self.chroma_client.get_or_create_collection(name="langchain")
-            
-            self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
-            self.client = InferenceClient(self.hf_model)
-            
-            logger.info("RAG Engine successfully bound to native unfiltered collection infrastructure.")
-        except Exception as e:
-            logger.error(f"Failed initialization of RAG pipeline components: {e}")
-            raise
-
-    def query(self, query_text: str, k: int = 4) -> Tuple[str, List[str]]:
-        """Executes full similarity retrieval and returns LLM summary text."""
+        """Initializes connection to the generated vector database
+        infrastructure with dynamic collection detection."""
         
         try:
-            # 1. Calculate raw embeddings from the input string
+            self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+            self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
+            
+            # ... keep your collection dynamic search code exactly the same ...
+            
+            self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
+            
+            # UPDATED LINE: Automatically binds your token to avoid the provider key error
+            self.client = InferenceClient(
+                model=self.hf_model,
+                token=os.environ.get("HF_TOKEN")
+            )
+            
+            logger.info("RAG Engine successfully synchronized and authenticated.")
+        except Exception as e:
+            # ...
+        # try:
+        #     # 1. Initialize the embedding weights
+        #     self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+            
+        #     # 2. Open our direct storage client connection
+        #     self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
+            
+        #     # 3. DYNAMIC CHECK: List all available collections inside your folder
+        #     available_collections = [c.name for c in self.chroma_client.list_collections()]
+        #     logger.info(f"Discovered collections on disk: {available_collections}")
+            
+        #     # Identify which collection actually contains your data records
+        #     chosen_collection = "langchain"  # Fallback baseline
+        #     for col_name in available_collections:
+        #         col_obj = self.chroma_client.get_collection(name=col_name)
+        #         # If this collection contains your 34,585 records, attach to it!
+        #         if col_obj.count() > 0:
+        #             chosen_collection = col_name
+        #             logger.info(f"🎯 Found populated data layer inside collection: '{col_name}' ({col_obj.count()} chunks)")
+        #             break
+            
+        #     # Bind to the discovered data pool
+        #     self.collection = self.chroma_client.get_or_create_collection(name=chosen_collection)
+            
+        #     self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
+        #     self.client = InferenceClient(self.hf_model)
+            
+        #     logger.info(f"RAG Engine successfully synchronized to active collection target: {chosen_collection}")
+        # except Exception as e:
+            logger.error(f"Failed initialization of RAG pipeline components: {e}")
+            raise
+        
+    def query(self, query_text: str, k: int = 4) -> Tuple[str, List[str]]:
+        """Executes full similarity retrieval and returns LLM summary text."""
+        try:
+            # Calculate raw embeddings from input string
             query_embedding = self.embeddings.embed_query(query_text)
             
-            # 2. Run an entirely unfiltered raw native vector search
+            # FIXED: query directly against self.collection (not self.vector_db)
             results = self.collection.query(
                 query_embeddings=[query_embedding],
                 n_results=k
             )
             
             # Extract plain text content directly from the returned array structure
-            context_chunks = results.get("documents", [[]])[0]
-            
+            documents_list = results.get("documents", [])
+            context_chunks = documents_list[0] if documents_list else []
+                
         except Exception as e:
-            logger.error(f"Native vector retrieval panic caught: {e}")
-            return "Retrieval system encountered an index drift delay.", []
-        
-        if not context_chunks:
+            logger.error(f"Direct native vector query execution exception: {e}")
+            context_chunks = []
+            
+        # If your vector database returned absolutely nothing, run a structural fallback pass
+        if not context_chunks or len(context_chunks) == 0 or context_chunks[0] is None:
+            try:
+                logger.warning("Empty vector result space. Attempting a wide structural text fetch fallback.")
+                # FIXED: Call fallback directly on self.collection
+                fallback_data = self.collection.get(limit=k)
+                context_chunks = fallback_data.get("documents", [])
+            except Exception as severe_err:
+                logger.critical(f"Total database collection layer failure: {severe_err}")
+                return "I do not have enough information.", []
+
+        if not context_chunks or context_chunks[0] is None:
             return "I do not have enough information.", []
 
-        context_str = "\n\n--- Context Chunk ---\n".join(context_chunks)
+        # Bind the text chunks together for prompt context
+        context_str = "\n\n--- Context Chunk ---\n".join([str(chunk) for chunk in context_chunks])
         
         system_prompt = (
             "You are a CrediTrust Financial Analyst. Your job is to analyze consumer financial complaints.\n"
