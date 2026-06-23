@@ -2,6 +2,7 @@ import os
 import time
 import streamlit as st
 import chromadb
+os.environ["HF_HUB_OFFLINE"] = "1"
 
 # Import your production pipeline class from your src folder
 from src.rag_pipeline import CrediTrustRAG
