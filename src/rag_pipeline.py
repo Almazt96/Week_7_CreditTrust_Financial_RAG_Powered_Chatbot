@@ -52,14 +52,26 @@ class CrediTrustRAG:
             # Bind to the discovered data pool explicitly so self.collection exists!
             self.collection = self.chroma_client.get_or_create_collection(name=chosen_collection)
             
+            # 1. Use the Mistral Instruct identifier on the Hub
             self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
             
-            # FIXED: Kept ONLY the OpenAI client configured for your Novita token endpoint
+            # 2. Point to the official Hugging Face universal router endpoint
             self.client = OpenAI(
-                base_url="https://api.novita.ai/v3/openai",
-                api_key=os.environ.get("HF_TOKEN") # Pulls your key dynamically
+                base_url="https://router.huggingface.co/v1",
+                api_key="hf_your_actual_hugging_face_token_here".strip() # Ensure your active hf_ token is here
             )
+                        
+            # self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
             
+            # # 1. Paste your key carefully between the quotes
+            # raw_key = "your_actual_novita_api_key_here"
+            
+            # # 2. Initialize the client using an explicitly cleaned key string
+            # self.client = OpenAI(
+            #     base_url="https://api.novita.ai/v3/openai",
+            #     api_key=raw_key.strip()  # Force removes any hidden trailing spaces
+            # )
+                        
             logger.info(f"RAG Engine successfully synchronized to active collection target: {chosen_collection}")
         except Exception as e:
             logger.error(f"Failed initialization of RAG pipeline components: {e}")
