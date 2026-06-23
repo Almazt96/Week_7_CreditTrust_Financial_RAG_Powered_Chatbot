@@ -2,7 +2,13 @@ import os
 import time
 import streamlit as st
 import chromadb
+
+# Suppress HuggingFace Hub offline status warnings if executing local models
 os.environ["HF_HUB_OFFLINE"] = "1"
+
+from dotenv import load_dotenv
+# CRITICAL: This must run BEFORE get_rag_system() is called
+load_dotenv()
 
 # Import your production pipeline class from your src folder
 from src.rag_pipeline import CrediTrustRAG
@@ -17,14 +23,12 @@ st.set_page_config(
 st.title("💬 CrediTrust RAG Support Interface")
 st.caption("Empowering compliance, support, and product management teams with verified insight lineages.")
 
-# # --- 2. INITIALIZE PRODUCTION RAG BACKEND ---
+# --- 2. INITIALIZE PRODUCTION RAG BACKEND ---
 @st.cache_resource
 def get_rag_system():
-    # Since your class has no arguments in __init__, call it empty.
-    # It handles paths internally inside src/rag_pipeline.py!
     return CrediTrustRAG()
 
-# ADD THIS LINE TO ACTUALLY INITIALIZE THE VARIABLE:
+# Initialize the RAG variable
 rag_system = get_rag_system()
 
 # --- 3. SESSION STATE INITIALIZATION ---
@@ -87,7 +91,6 @@ if user_input := st.chat_input("Ask a compliance or product support question..."
             with st.expander("🔍 View Retrieved Sources & Evidence", expanded=True):
                 for idx, text_snippet in enumerate(context_chunks, 1):
                     st.markdown(f"**Source Document {idx}:**")
-                    # Renders actual text data chunks matching your SentenceTransformer index
                     st.info(f"*{text_snippet}*")
                 
     # 6. Save Assistant Response and Sources to Session State
