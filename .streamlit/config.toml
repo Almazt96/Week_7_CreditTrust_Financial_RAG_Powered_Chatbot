@@ -1,0 +1,3 @@
+[server]
+# Prevents Streamlit from watching files inside your virtual environment
+folderWatchBlacklist = [".*\\site-packages\\.*", ".*\\anaconda3\\.*"]

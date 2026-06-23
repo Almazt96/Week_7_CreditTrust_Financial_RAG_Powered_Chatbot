@@ -9,7 +9,12 @@ import sys
 import logging
 import chromadb
 from typing import Tuple, List
+import httpx
 from openai import OpenAI
+from dotenv import load_dotenv
+
+# Force load variables at the absolute top
+load_dotenv()
 
 # Ensure parent directory remains visible to the imports 
 # regardless of entry point
@@ -43,7 +48,6 @@ class CrediTrustRAG:
             chosen_collection = "langchain"  # Fallback baseline
             for col_name in available_collections:
                 col_obj = self.chroma_client.get_collection(name=col_name)
-                # If this collection contains your 34,585 records, attach to it!
                 if col_obj.count() > 0:
                     chosen_collection = col_name
                     logger.info(f"🎯 Found populated data layer inside collection: '{col_name}' ({col_obj.count()} chunks)")
@@ -52,25 +56,21 @@ class CrediTrustRAG:
             # Bind to the discovered data pool explicitly so self.collection exists!
             self.collection = self.chroma_client.get_or_create_collection(name=chosen_collection)
             
+            # 4. FIXED MODEL TARGET FOR NOVITA AI GATEWAY
+            # Updated to an active, supported model endpoint name on Novita's servers
+            # Create an HTTP client that bypasses network SSL checks
+            custom_http_client = httpx.Client(verify=False)
+
             # 1. Use the Mistral Instruct identifier on the Hub
             self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
             
             # 2. Point to the official Hugging Face universal router endpoint
+            # Replace 'hf_your_token_here' with an active Read/Write token from hf.co/settings/tokens
             self.client = OpenAI(
                 base_url="https://router.huggingface.co/v1",
-                api_key="hf_your_actual_hugging_face_token_here".strip() # Ensure your active hf_ token is here
+                api_key="hf_your_actual_token_here".strip(),
+                http_client=custom_http_client
             )
-                        
-            # self.hf_model = "mistralai/Mistral-7B-Instruct-v0.3"
-            
-            # # 1. Paste your key carefully between the quotes
-            # raw_key = "your_actual_novita_api_key_here"
-            
-            # # 2. Initialize the client using an explicitly cleaned key string
-            # self.client = OpenAI(
-            #     base_url="https://api.novita.ai/v3/openai",
-            #     api_key=raw_key.strip()  # Force removes any hidden trailing spaces
-            # )
                         
             logger.info(f"RAG Engine successfully synchronized to active collection target: {chosen_collection}")
         except Exception as e:
@@ -83,7 +83,7 @@ class CrediTrustRAG:
             # Calculate raw embeddings from input string
             query_embedding = self.embeddings.embed_query(query_text)
             
-            # Query directly against self.collection (no LangChain wrapper filters)
+            # Query directly against self.collection
             results = self.collection.query(
                 query_embeddings=[query_embedding],
                 n_results=k
